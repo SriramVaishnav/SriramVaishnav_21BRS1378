@@ -1,4 +1,5 @@
-// pages/index.js
+'use client';
+
 import { useState, useEffect } from 'react';
 import Grid from './components/Grid';
 import Chat from './components/Chat';
