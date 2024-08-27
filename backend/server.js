@@ -1,13 +1,26 @@
 const express = require('express');
 const http = require('http');
-const socketio = require('socket.io');
+const socketIo = require('socket.io');
 const mongoose = require('mongoose');
 const { handleSockets } = require('./socket');
 const { initDb } = require('./models');
+const cors = require('cors');
 
 const app = express();
 const server = http.createServer(app);
-const io = socketio(server);
+const io = socketIo(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  }
+});
+
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: '*',
+}));
 
 initDb();
 

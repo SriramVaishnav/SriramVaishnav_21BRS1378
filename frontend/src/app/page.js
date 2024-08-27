@@ -12,13 +12,10 @@ export default function Home() {
   const [gameScreen, setGameScreen] = useState(false);
   const [playerNumber, setPlayerNumber] = useState(null);
   const [currentRoomId, setCurrentRoomId] = useState(null);
-  const [socket, setSocket] = useState(null);
+  const socket = io('http://localhost:3000');
 
   useEffect(() => {
-    const socketInstance = io();
-    setSocket(socketInstance);
-
-    socketInstance.on('user_id', (data) => {
+    socket.on('user_id', (data) => {
       if (data.id) {
         setUserCreated(true);
         setGameScreen(true);
@@ -27,12 +24,12 @@ export default function Home() {
       }
     });
 
-    socketInstance.on('room_created', (data) => {
+    socket.on('room_created', (data) => {
       alert(`Room ${data.room_id} created!`);
       setPlayerNumber(data.player_no);
     });
 
-    socketInstance.on('room_join', (data) => {
+    socket.on('room_join', (data) => {
       if (data.room_id) {
         alert(`Joined room ${data.room_id} as ${data.role}`);
         setCurrentRoomId(data.room_id);
@@ -42,7 +39,7 @@ export default function Home() {
       }
     });
 
-    return () => socketInstance.disconnect();
+    return () => socket.disconnect();
   }, []);
 
   const handleCreateUser = () => {
@@ -78,7 +75,7 @@ export default function Home() {
         <div className="flex flex-col items-center space-y-4">
           <input
             type="text"
-            className="p-2 border-2 border-gray-300 rounded-md"
+            className="p-2 border-2 text-black border-gray-300 rounded-md"
             placeholder="Enter User Name"
             value={userId}
             onChange={(e) => setUserId(e.target.value)}

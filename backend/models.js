@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-    id: String,
+    id: String,  // Ensure this matches the type used
     played: Number,
     won: Number
 });
@@ -38,6 +38,10 @@ async function initDb() {
 }
 
 async function createUser(userId) {
+    if (typeof userId !== 'string') {
+        throw new Error('User ID must be a string');
+    }
+
     let user = await User.findOne({ id: userId });
     if (user) {
         return { error: "User Already Exists. Try Different Name" };
@@ -49,6 +53,10 @@ async function createUser(userId) {
 }
 
 async function loginUser(userId) {
+    if (typeof userId !== 'string') {
+        throw new Error('User ID must be a string');
+    }
+
     const user = await User.findOne({ id: userId });
     if (!user) {
         return { error: "The user name doesn't exist." };
@@ -57,6 +65,10 @@ async function loginUser(userId) {
 }
 
 async function createRoom(roomId) {
+    if (typeof roomId !== 'string') {
+        throw new Error('Room ID must be a string');
+    }
+
     const grid = [
         ['0', '0', '0', '0', '0'],
         ['0', '0', '0', '0', '0'],
