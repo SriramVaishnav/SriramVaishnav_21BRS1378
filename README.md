@@ -13,7 +13,7 @@ This is a turn-based chess-like game built with Node.js for the backend and Next
 1. **Clone the Repository**
    
    ```bash
-   git clone https://github.com/your-username/chess-like-game.git
+   git clone https://github.com/SriramVaishnav/SriramVaishnav_21BRS1378
    cd chess-like-game
    ```
 
