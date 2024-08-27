@@ -1,123 +1,127 @@
-'use client';
-
+// pages/index.js
 import { useState, useEffect } from 'react';
+import Grid from './components/Grid';
+import Chat from './components/Chat';
+import MoveHistory from './components/MoveHistory';
+import io from 'socket.io-client';
 
 export default function Home() {
+  const [userId, setUserId] = useState('');
+  const [userCreated, setUserCreated] = useState(false);
+  const [gameScreen, setGameScreen] = useState(false);
+  const [playerNumber, setPlayerNumber] = useState(null);
+  const [currentRoomId, setCurrentRoomId] = useState(null);
   const [socket, setSocket] = useState(null);
-  const [gameState, setGameState] = useState(null);
-  const [playerId, setPlayerId] = useState('');
-  const [selectedCharacter, setSelectedCharacter] = useState(null);
-  const [gameInitialized, setGameInitialized] = useState(false);
 
   useEffect(() => {
-    const socket = new WebSocket('ws://localhost:8080');
-    socket.onopen = () => {
-      console.log('Connected to WebSocket server');
-    };
-    socket.onmessage = (event) => {
-      const { event: serverEvent, data } = JSON.parse(event.data);
-      switch (serverEvent) {
-        case 'startGame':
-        case 'gameStateUpdate':
-          setGameState(data);
-          break;
-        case 'invalidMove':
-          alert(data);
-          break;
-        case 'gameOver':
-          alert(data);
-          break;
-        case 'restart':
-          setGameState(data);
-          setSelectedCharacter(null);
-          setGameInitialized(false);
-          setPlayerId('');
-          break;
-      }
-    };
-    setSocket(socket);
+    const socketInstance = io();
+    setSocket(socketInstance);
 
-    return () => socket.close();
+    socketInstance.on('user_id', (data) => {
+      if (data.id) {
+        setUserCreated(true);
+        setGameScreen(true);
+      } else {
+        alert(data.message);
+      }
+    });
+
+    socketInstance.on('room_created', (data) => {
+      alert(`Room ${data.room_id} created!`);
+      setPlayerNumber(data.player_no);
+    });
+
+    socketInstance.on('room_join', (data) => {
+      if (data.room_id) {
+        alert(`Joined room ${data.room_id} as ${data.role}`);
+        setCurrentRoomId(data.room_id);
+        setPlayerNumber(data.player_no);
+      } else {
+        alert(data.message);
+      }
+    });
+
+    return () => socketInstance.disconnect();
   }, []);
 
-  const handleInitGame = () => {
-    const positions = [
-      { name: 'P1', position: [0, 0] },
-      { name: 'P2', position: [0, 1] },
-      { name: 'H1', position: [0, 2] },
-      { name: 'H2', position: [0, 3] },
-      { name: 'P3', position: [0, 4] },
-    ];
-
-    socket.send(JSON.stringify({
-      event: 'initGame',
-      data: { playerId, positions },
-    }));
-
-    setGameInitialized(true); // Hide input field after game initialization
+  const handleCreateUser = () => {
+    if (userId) {
+      socket.emit('create_user', { user_id: userId });
+    }
   };
 
-  const handleMove = (move) => {
-    socket.send(JSON.stringify({
-      event: 'playerMove',
-      data: { playerId, character: selectedCharacter, move },
-    }));
+  const handleLoginUser = () => {
+    if (userId) {
+      socket.emit('login_as_user', { user_id: userId });
+    }
   };
 
-  const renderBoard = () => {
-    return gameState?.board.map((row, i) => (
-      <div key={i} className="flex">
-        {row.map((cell, j) => (
-          <div
-            key={j}
-            className="w-16 h-16 border flex items-center justify-center"
-            onClick={() => setSelectedCharacter(cell ? cell.split('-')[1] : null)}
-          >
-            {cell}
-          </div>
-        ))}
-      </div>
-    ));
+  const handleCreateRoom = () => {
+    const roomId = prompt('Enter new ID for your game:');
+    if (roomId) {
+      socket.emit('create_room', { room_id: roomId });
+    }
+  };
+
+  const handleJoinRoom = () => {
+    const roomId = prompt('Enter Game ID:');
+    if (roomId) {
+      setCurrentRoomId(roomId);
+      socket.emit('join_room', { room_id: roomId, user_id: userId });
+    }
   };
 
   return (
-    <div className="container mx-auto p-8">
-      {!gameInitialized && (
-        <div className="flex items-center justify-center">
+    <div className="bg-yellow-100 min-h-screen flex flex-col items-center justify-center">
+      {!userCreated ? (
+        <div className="flex flex-col items-center space-y-4">
           <input
             type="text"
-            placeholder="Enter Player ID (A or B)"
-            className="border p-2 mr-4 text-black"
-            value={playerId}
-            onChange={(e) => setPlayerId(e.target.value)}
+            className="p-2 border-2 border-gray-300 rounded-md"
+            placeholder="Enter User Name"
+            value={userId}
+            onChange={(e) => setUserId(e.target.value)}
           />
-          <button className="bg-blue-500 text-white px-4 py-2" onClick={handleInitGame}>
-            Initialize Game.
+          <button
+            className="px-4 py-2 bg-pink-400 text-white rounded-md"
+            onClick={handleCreateUser}
+          >
+            Create User
+          </button>
+          <button
+            className="px-4 py-2 bg-pink-400 text-white rounded-md"
+            onClick={handleLoginUser}
+          >
+            Login
           </button>
         </div>
-      )}
-
-      {gameState && (
-        <div>
-          <div className="flex flex-col">{renderBoard()}</div>
-          <div className="mt-4">
-            {['L', 'R', 'F', 'B', 'FL', 'FR', 'BL', 'BR'].map((move) => (
+      ) : (
+        <div className="w-full max-w-3xl mx-auto">
+          {!gameScreen ? (
+            <div className="flex flex-col items-center space-y-4">
               <button
-                key={move}
-                className="bg-green-500 text-white px-4 py-2 m-2"
-                onClick={() => handleMove(move)}
-                disabled={!selectedCharacter}
+                className="px-4 py-2 bg-pink-400 text-white rounded-md"
+                onClick={handleCreateRoom}
               >
-                {move}
+                Create New Game
               </button>
-            ))}
-          </div>
-          <button
-            className="bg-red-500 text-white px-4 py-2 mt-4"
-            onClick={() => socket.send(JSON.stringify({ event: 'restartGame' }))}
-          >
-            Restart Game
-          </button>
+              <button
+                className="px-4 py-2 bg-pink-400 text-white rounded-md"
+                onClick={handleJoinRoom}
+              >
+                Join Using Id
+              </button>
+            </div>
+          ) : (
+            <div>
+              <h2 className="text-center text-2xl font-bold mb-4">
+                Player {playerNumber}'s Turn
+              </h2>
+              <Grid socket={socket} currentRoomId={currentRoomId} />
+              <Chat socket={socket} currentRoomId={currentRoomId} />
+              <MoveHistory socket={socket} />
+            </div>
+          )}
         </div>
       )}
     </div>
